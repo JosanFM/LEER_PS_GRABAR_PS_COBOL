@@ -1,0 +1,1 @@
+Programa que procesa un fichero secuencial (empleados) PS, y graba otro PS usando el verbo STRING para unir varios campos en un fichero de salida. Program that processes a sequential file (employees) PS, and records another PS using the verb STRING to join several fields into an output file.
