@@ -1,0 +1,19 @@
+//JPN08CGA JOB (),'IBMUSER',NOTIFY=&SYSUID,
+//             MSGCLASS=Q,CLASS=A,MSGLEVEL=(1,1)
+//*
+//* ---------------------------------------------------------------
+//*  JCL QUE EJECUTA EL PGM BATCH PBC1N08 (GRABAR EN FICHERO PS)
+//* ---------------------------------------------------------------
+//GO     EXEC PGM=PBC1N08,
+//             REGION=0M
+//STEPLIB  DD  DSN=ADCD.Z111S.VTAMLIB,DISP=SHR
+//ENTJCL   DD  DSN=JOSAN1.COBOL1.EMPLEATS,DISP=SHR
+//SALJCL   DD  DSN=JOSAN1.COBOL1.PBC1N08.OUT,
+//             DISP=(NEW,CATLG,DELETE),
+//             SPACE=(TRK,(50,10),RLSE),
+//             DCB=(DSORG=PS,RECFM=FB,LRECL=60,BLKSIZE=0)
+//SYSOUT   DD  SYSOUT=*
+//SYSPRINT DD  SYSOUT=*
+//CEEDUMP  DD  SYSOUT=*
+//SYSUDUMP DD  SYSOUT=*
+//
