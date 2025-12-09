@@ -1,0 +1,200 @@
+      *----------------------------------------------------------------*
+       IDENTIFICATION DIVISION.
+      *----------------------------------------------------------------*
+       PROGRAM-ID. PBC1N08.
+       AUTHOR. JOSE ANTONIO FERNANDEZ
+      *
+      * Programa que procesa (lee) un fichero secuencial (empleados) PS
+      * y graba otro PS usando el verbo STRING para unir varios campos
+      * en un fichero de salida (sentencia de escritura, WRITE).
+      *----------------------------------------------------------------*
+       ENVIRONMENT DIVISION.
+      *----------------------------------------------------------------*
+       CONFIGURATION SECTION.
+       SPECIAL-NAMES.
+           DECIMAL-POINT IS COMMA.
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+           SELECT EMPLEADOS
+                  ASSIGN ENTJCL
+                  ORGANIZATION IS SEQUENTIAL
+                  ACCESS MODE IS SEQUENTIAL
+                  FILE STATUS FS-EMPLEADOS.
+           SELECT SALIDA
+                  ASSIGN SALJCL
+                  ORGANIZATION IS SEQUENTIAL
+                  ACCESS MODE IS SEQUENTIAL
+                  FILE STATUS FS-SALIDA.
+      *----------------------------------------------------------------*
+       DATA DIVISION.
+      *----------------------------------------------------------------*
+       FILE SECTION.
+       FD  EMPLEADOS
+           LABEL RECORD IS STANDARD
+           BLOCK CONTAINS 0 RECORDS
+           RECORDING MODE IS F
+           DATA RECORD IS REG-EMPLEADOS.
+       01  REG-EMPLEADOS         PIC X(100).
+       FD  SALIDA
+           LABEL RECORD IS STANDARD
+           BLOCK CONTAINS 0 RECORDS
+           RECORDING MODE IS F
+           DATA RECORD IS REG-SALIDA.
+       01  REG-SALIDA            PIC X(60).
+
+       WORKING-STORAGE SECTION.
+       01  WS-CONTANTES.
+           05 CTE-NOMPGM         PIC X(7)  VALUE 'PBC1N08'.
+       01  WS-VARIABLES.
+           05 AUX-SPACE          PIC X     VALUE SPACES.
+           05 FS-EMPLEADOS       PIC 9(2)  VALUE ZEROES.
+           05 FS-SALIDA          PIC 9(2)  VALUE ZEROES.
+           05 IN-EMPLEADOS-REG.
+              10 IN-CODIGO       PIC 9(5)      VALUE ZEROES.
+              10 IN-NOMBRE       PIC X(6)      VALUE SPACES.
+              10 IN-APE1         PIC X(9)      VALUE SPACES.
+              10 IN-APE2         PIC X(9)      VALUE SPACES.
+              10 IN-DIRECCION    PIC X(30)     VALUE SPACES.
+              10 IN-POBLACION    PIC X(10)     VALUE SPACES.
+              10 FILLER          PIC X(11)     VALUE SPACES.
+              10 IN-SALARIO      PIC S9(7)V9(2) COMP-3 VALUE ZEROES.
+              10 FILLER          PIC X(15)     VALUE SPACES.
+           05 IN-SALARIO-EDITADO PIC Z.ZZZ.ZZ9,99 VALUE ZEROES.
+           05 OU-SALIDA-REG.
+              10 OU-NOMBRE-COMPLETO PIC X(30) VALUE SPACES.
+              10 OU-SALARIO         PIC S9(7)V9(2) COMP-3
+                                              VALUE ZEROES.
+              10 FILLER             PIC X(25) VALUE SPACES.
+       01  CONTADORES.
+           05 CTR-LEIDOS         PIC 9(2).
+           05 CTR-GRABADOS       PIC 9(2).
+       01  SWITCHES.
+           05 SW-EMPLEADOS       PIC X     VALUE 'N'.
+              88 END-EMPLEADOS             VALUE 'Y'.
+           05 SW-VACIO           PIC X     VALUE 'N'.
+              88 YES-VACIO                 VALUE 'Y'.
+
+      *----------------------------------------------------------------*
+       PROCEDURE DIVISION.
+      *----------------------------------------------------------------*
+           PERFORM 1000-INICIO
+           PERFORM 2000-PROCESS UNTIL END-EMPLEADOS
+           PERFORM 3000-END
+           .
+
+      *------------*
+       1000-INICIO.
+      *------------*
+           INITIALIZE CONTADORES
+
+           PERFORM 1100-ABRIR-FICHEROS
+
+           PERFORM 2100-LEER
+           IF END-EMPLEADOS
+              SET YES-VACIO TO TRUE
+           END-IF
+           .
+
+       1100-ABRIR-FICHEROS.
+      * output: modo escritura
+      * i-o   : modo lectura y escritura (no org. LINE SEQUENTIAL)
+      * input : modo lectura
+      * extend: modo escritura (a adir contenido al final)
+      *    OPEN INPUT EMPLEADOS REVERSED
+      *    OPEN INPUT EMPLEADOS REVERSED WITH NO REWIND
+      *    OPEN INPUT EMPLEADOS
+
+           OPEN INPUT EMPLEADOS
+           IF FS-EMPLEADOS NOT = ZEROES
+              DISPLAY 'ERROR AL ABRIR EMPLEADOS:' FS-EMPLEADOS
+              PERFORM 9990-CANCELAR
+           END-IF
+
+           OPEN OUTPUT SALIDA
+           IF FS-SALIDA NOT = ZEROES
+              DISPLAY 'ERROR AL ABRIR SSALIDA: ' FS-SALIDA
+              PERFORM 9990-CANCELAR
+           END-IF
+           .
+
+      *------------*
+       2000-PROCESS.
+      *------------*
+           PERFORM 2050-ASIGNAR
+           WRITE REG-SALIDA FROM OU-SALIDA-REG
+           IF FS-SALIDA NOT = ZEROES
+              DISPLAY 'ERROR AL GRABAR FICHERO SALIDA: ' FS-SALIDA
+              PERFORM 9990-CANCELAR
+           ELSE
+              ADD 1 TO CTR-GRABADOS
+           END-IF
+
+           PERFORM 2100-LEER
+           IF FS-EMPLEADOS = 10
+              SET END-EMPLEADOS TO TRUE
+           END-IF
+           .
+
+       2050-ASIGNAR.
+           INITIALIZE OU-SALIDA-REG
+
+           STRING IN-NOMBRE DELIMITED BY SPACES
+                  AUX-SPACE DELIMITED BY SIZE
+                  IN-APE1   DELIMITED BY SPACES
+                  AUX-SPACE DELIMITED BY SIZE
+                  IN-APE2   DELIMITED BY SPACES
+             INTO OU-NOMBRE-COMPLETO
+           END-STRING
+
+           MOVE IN-SALARIO TO OU-SALARIO.
+
+
+       2100-LEER.
+           READ EMPLEADOS INTO IN-EMPLEADOS-REG
+             AT END
+                SET END-EMPLEADOS TO TRUE
+             NOT AT END
+                ADD 1 TO CTR-LEIDOS
+           END-READ
+
+           IF FS-EMPLEADOS NOT EQUAL ZEROES AND 10
+              DISPLAY 'ERROR AL LEER ENTRADA: ' FS-EMPLEADOS
+              PERFORM 9990-CANCELAR
+           END-IF
+           .
+
+      *------------*
+       3000-END.
+      *------------*
+           IF YES-VACIO
+              DISPLAY 'FICHERO DE EMPLEADOS VAC O'
+           END-IF
+
+           CLOSE EMPLEADOS
+           IF FS-EMPLEADOS NOT = ZEROES
+              DISPLAY 'ERROR AL CERRAR EMPLEADOS: ' FS-EMPLEADOS
+           END-IF
+
+           CLOSE SALIDA
+           IF FS-SALIDA    NOT = ZEROES
+              DISPLAY 'ERROR AL CERRAR SALIDA   : ' FS-SALIDA
+           END-IF
+
+           DISPLAY 'CONTADOR EMPLEADOS LEIDOS  : ' CTR-LEIDOS
+           DISPLAY 'CONTADOR EMPLEADOS GRABADOS: ' CTR-GRABADOS
+
+           STOP RUN.
+
+      *------------*
+       9990-CANCELAR.
+      *------------*
+           DISPLAY '************************************'
+           DISPLAY ' SE CANCELA EL PROGRAMA Y LA CADENA '
+           DISPLAY '************************************'
+           DISPLAY ' REGISTROS LEIDOS  : ' CTR-LEIDOS
+           DISPLAY ' REGISTROS GRABADOS: ' CTR-GRABADOS
+           CLOSE EMPLEADOS SALIDA
+           MOVE 1001 TO RETURN-CODE
+           STOP RUN.
+
+
